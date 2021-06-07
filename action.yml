@@ -1,0 +1,93 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+
+name: 'Fetch Feature Server build'
+description: 'Fetch the docker image used to deploy Feature Servers'
+inputs:
+  name: 
+    description: 'The name to give the Feature Server'
+    required: true
+  aws-access-key-id:
+    description: 'The access key to use to assume the Feature Server role'
+    required: true
+  aws-secret-access-key:
+    description: 'The secret access key to use to assume the Feature Server role'
+    required: true
+  aws-region:
+    description: 'The region containing the Feature Server deploy Docker Image'
+    required: false
+    default: 'eu-west-1'
+  aws-account:
+    description: 'The account containing the Feature Server deploy Docker Image'
+    required: true
+  role-to-assume:
+    description: 'The role to assume to deploy the Feature Server'
+    required: true
+  repository:
+    description: 'The Docker repository'
+    required: false
+    default: "webgains/feature-server"
+  tag:
+    description: 'The tag to use'
+    required: false
+    default: 'latest'
+  args:
+    description: 'Additional arguments for the '
+    required: false
+    default: ''
+  ssh-key:
+    description: 'SSH key to use for cloning out the Git repositories'
+    required: true
+    default: ''
+
+outputs:
+  url:
+    description: "The Server URL"
+    value: ${{ steps.feature-server.outputs.url }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set dynamic env vars
+      shell: bash
+      run: |
+        echo "IMAGE_URI=${{ inputs.aws-account }}.dkr.ecr.${{ inputs.aws-region }}.amazonaws.com/${{ inputs.repository }}:${{ inputs.tag }}" >> $GITHUB_ENV
+        echo "ROLE_ID_NAME=$(echo ${{ github.actor }} | sed 's/\[|\]//g')" >> $GITHUB_ENV
+
+    - name: Configure AWS Credentials
+      shell: bash
+      env:
+        AWS_ACCESS_KEY_ID: ${{ inputs.aws-access-key-id }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
+        AWS_DEFAULT_REGION: ${{ inputs.aws-region }}
+      run: |
+        KST=($(aws sts assume-role --role-arn "${{ inputs.role-to-assume }}" \
+                                   --role-session-name "${{ env.ROLE_ID_NAME }}@${{ github.event.repository.name }}" \
+                                   --duration-seconds 3600 \
+                                   --query "[Credentials.AccessKeyId,Credentials.SecretAccessKey,Credentials.SessionToken]" \
+                                   --output text))
+        echo "AWS_ACCESS_KEY_ID=${KST[0]}" >> $GITHUB_ENV
+        echo "AWS_SECRET_ACCESS_KEY=${KST[1]}" >> $GITHUB_ENV
+        echo "AWS_SESSION_TOKEN=${KST[2]}" >> $GITHUB_ENV
+        echo "AWS_SECURITY_TOKEN=${KST[2]}" >> $GITHUB_ENV
+        echo "AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION" >> $GITHUB_ENV
+
+    - name: Login to Amazon ECR
+      shell: bash
+      run: |
+        echo "::group::ECR Login"
+        aws ecr get-login-password --region ${{ inputs.aws-region }} | docker login --username AWS --password-stdin ${{ inputs.aws-account }}.dkr.ecr.${{ inputs.aws-region }}.amazonaws.com
+        echo "::endgroup::"
+
+    - name: Shutdown feature server
+      id: feature-server
+      shell: bash
+      run: |
+        set +e
+        eval $(ssh-agent)
+        ssh-add - <<< "${{ inputs.ssh-key }}"
+        docker run --rm -i -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN -e SSH_AUTH_SOCK=/ansible/.ssh.sock -v $SSH_AUTH_SOCK:/ansible/.ssh.sock $IMAGE_URI --name ${{ inputs.name }} --bootstrap ${{ inputs.args }}
+        EXIT_CODE=$?
+        echo "::set-output name=url::https://${{ inputs.name }}.feature.webgains.team"
+        echo "::set-output name=exitcode::$EXIT_CODE"
+        eval "$(ssh-agent -k)"
+        exit $EXIT_CODE
