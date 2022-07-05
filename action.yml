@@ -78,13 +78,14 @@ runs:
         aws ecr get-login-password --region ${{ inputs.aws-region }} | docker login --username AWS --password-stdin ${{ inputs.aws-account }}.dkr.ecr.${{ inputs.aws-region }}.amazonaws.com
         echo "::endgroup::"
 
-    - name: Shutdown feature server
+    - name: Run feature server management script
       id: feature-server
       shell: bash
       run: |
         set +e
         eval $(ssh-agent)
         ssh-add - <<< "${{ inputs.ssh-key }}"
+        docker pull $IMAGE_URI
         docker run --rm -i -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN -e ANSIBLE_USER=${{ env.ROLE_ID_NAME }} -e SSH_AUTH_SOCK=/ansible/.ssh.sock -v $SSH_AUTH_SOCK:/ansible/.ssh.sock $IMAGE_URI --name ${{ inputs.name }} --bootstrap ${{ inputs.args }}
         EXIT_CODE=$?
         echo "::set-output name=url::https://${{ inputs.name }}.feature.webgains.team"
