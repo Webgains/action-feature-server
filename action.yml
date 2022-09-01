@@ -51,7 +51,7 @@ runs:
       shell: bash
       run: |
         echo "IMAGE_URI=${{ inputs.aws-account }}.dkr.ecr.${{ inputs.aws-region }}.amazonaws.com/${{ inputs.repository }}:${{ inputs.tag }}" >> $GITHUB_ENV
-        echo "ROLE_ID_NAME=$(echo ${{ github.actor }} | sed 's/\[|\]//g')" >> $GITHUB_ENV
+        echo "ROLE_ID_NAME=$(echo ${{ github.actor }} | sed -E 's/\[.*\]//g')" >> $GITHUB_ENV
 
     - name: Configure AWS Credentials
       shell: bash
