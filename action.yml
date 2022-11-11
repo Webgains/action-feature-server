@@ -82,15 +82,6 @@ runs:
         aws ecr get-login-password --region ${{ inputs.aws-region }} | docker login --username AWS --password-stdin ${{ inputs.aws-account }}.dkr.ecr.${{ inputs.aws-region }}.amazonaws.com
         echo "::endgroup::"
 
-    - name: Test some stuff
-      shell: bash
-      run: |
-        echo "::group::Docker Compose test"
-        env
-        docker --version
-        docker-compose --version
-        echo "::endgroup::"
-
     - name: Run feature server management script
       id: feature-server
       shell: bash
@@ -99,7 +90,7 @@ runs:
         eval $(ssh-agent)
         ssh-add - <<< "${{ inputs.ssh-key }}"
         docker pull $IMAGE_URI
-        docker run --rm -i -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN -e ANSIBLE_USER=${{ env.ROLE_ID_NAME }} -e SSH_SECRET_ID=${{ inputs.ssh-key-secret-id }} -e SSH_AUTH_SOCK=/ansible/.ssh.sock -v $SSH_AUTH_SOCK:/ansible/.ssh.sock $IMAGE_URI --name ${{ inputs.name }} --github-workflow --bootstrap ${{ inputs.args }} 2>&1
+        docker run --rm -i -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN -e ANSIBLE_USER=${{ env.ROLE_ID_NAME }} -e SSH_SECRET_ID=${{ inputs.ssh-key-secret-id }} -e SSH_AUTH_SOCK=/ansible/.ssh.sock -v $SSH_AUTH_SOCK:/ansible/.ssh.sock -v /var/run/docker.sock:/var/run/docker.sock $IMAGE_URI --name ${{ inputs.name }} --github-workflow --bootstrap ${{ inputs.args }} 2>&1
         EXIT_CODE=$?
         echo "::set-output name=exitcode::$EXIT_CODE"
         eval "$(ssh-agent -k)"
