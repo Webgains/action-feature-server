@@ -86,7 +86,7 @@ runs:
       shell: bash
       run: |
         echo "::group::Docker Compose"
-        apt-get install docker-compose docker-compose-plugin
+        sudo apt-get install docker-compose docker-compose-plugin
         echo "::endgroup::"
 
     - name: Run feature server management script
