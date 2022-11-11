@@ -82,11 +82,13 @@ runs:
         aws ecr get-login-password --region ${{ inputs.aws-region }} | docker login --username AWS --password-stdin ${{ inputs.aws-account }}.dkr.ecr.${{ inputs.aws-region }}.amazonaws.com
         echo "::endgroup::"
 
-    - name: Install Docker Compose
+    - name: Test some stuff
       shell: bash
       run: |
-        echo "::group::Docker Compose"
-        sudo apt-get install docker-compose docker-compose-plugin
+        echo "::group::Docker Compose test"
+        env
+        docker --version
+        docker-compose --version
         echo "::endgroup::"
 
     - name: Run feature server management script
