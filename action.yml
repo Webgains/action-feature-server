@@ -82,6 +82,19 @@ runs:
         aws ecr get-login-password --region ${{ inputs.aws-region }} | docker login --username AWS --password-stdin ${{ inputs.aws-account }}.dkr.ecr.${{ inputs.aws-region }}.amazonaws.com
         echo "::endgroup::"
 
+    - name: Install Docker Compose
+      shell: bash
+      run: |
+        set -x
+        set -e
+        arch="$(uname)-$(uname -m)"
+        flavor=$(echo $arch | tr '[:upper:]' '[:lower:]' )
+        DOWNLOAD_URL=$(curl -fL https://api.github.com/repos/docker/compose/releases/latest | jq -r '.assets[] | select(.name == "docker-compose-linux-x86_64") | .browser_download_url')
+        echo "Download Compose for ${flavor} from ${DOWNLOAD_URL}"
+        mkdir -p ~/.local/bin/
+        curl -fsSL "$DOWNLOAD_URL" -o ~/.local/bin/docker-compose
+        chmod +x ~/.local/bin/docker-compose
+
     - name: Run feature server management script
       id: feature-server
       shell: bash
