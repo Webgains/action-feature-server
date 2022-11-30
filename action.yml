@@ -89,6 +89,7 @@ runs:
         set +e
         eval $(ssh-agent)
         ssh-add - <<< "${{ inputs.ssh-key }}"
+        touch info.json
         docker pull $IMAGE_URI
         docker run \
           --rm -i -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN \
@@ -98,6 +99,7 @@ runs:
           -v $SSH_AUTH_SOCK:/ansible/.ssh.sock \
           -v /var/run/docker.sock:/var/run/docker.sock \
           -v fsd-${{ inputs.name }}:/root/build \
+          -v $PWD/info.json:/ansible/info.json \
           $IMAGE_URI \
             --name ${{ inputs.name }} \
             --github-workflow \
