@@ -105,10 +105,8 @@ runs:
             --bootstrap ${{ inputs.args }} 2>&1
         EXIT_CODE=$?
         echo "exitcode=$EXIT_CODE" >> $GITHUB_OUTPUT
-        if 0 == $EXIT_CODE; then
-          echo "ip=$(jq -r .ip info.json)" >> $GITHUB_OUTPUT
-          echo "instance=$(jq -r .instance info.json)" >> $GITHUB_OUTPUT
-          echo "url=$(jq -r .url info.json)" >> $GITHUB_OUTPUT
-        fi
+        echo "ip=$(jq -r .ip info.json)" >> $GITHUB_OUTPUT
+        echo "instance=$(jq -r .instance info.json)" >> $GITHUB_OUTPUT
+        echo "url=$(jq -r .url info.json)" >> $GITHUB_OUTPUT
         eval "$(ssh-agent -k)"
         exit $EXIT_CODE
