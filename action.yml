@@ -100,6 +100,7 @@ runs:
           -v /var/run/docker.sock:/var/run/docker.sock \
           -v fsd-${{ inputs.name }}:/root/build \
           -v $PWD/info.json:/ansible/info.json \
+          -v $HOME/.docker:/root/.docker \
           $IMAGE_URI \
             --name ${{ inputs.name }} \
             --github-workflow \
