@@ -90,6 +90,7 @@ runs:
         eval $(ssh-agent)
         ssh-add - <<< "${{ inputs.ssh-key }}"
         touch info.json
+        VOLUME_NAME=fsd-${{ inputs.name }}  
         docker pull $IMAGE_URI
         docker run \
           --rm -i -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN \
@@ -98,7 +99,7 @@ runs:
           -e SSH_AUTH_SOCK=/ansible/.ssh.sock \
           -v $SSH_AUTH_SOCK:/ansible/.ssh.sock \
           -v /var/run/docker.sock:/var/run/docker.sock \
-          -v fsd-${{ inputs.name }}:/root/build \
+          -v $VOLUME_NAME:/root/build \
           -v $PWD/info.json:/ansible/info.json \
           -v $HOME/.docker:/root/.docker \
           $IMAGE_URI \
@@ -111,5 +112,6 @@ runs:
         echo "ip=$(jq -r .ip info.json)" >> $GITHUB_OUTPUT
         echo "instance=$(jq -r .instance info.json)" >> $GITHUB_OUTPUT
         echo "url=$(jq -r .url info.json)" >> $GITHUB_OUTPUT
+        docker volume rm $VOLUME_NAME
         eval "$(ssh-agent -k)"
         exit $EXIT_CODE
